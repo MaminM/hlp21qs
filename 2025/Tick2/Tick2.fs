@@ -22,7 +22,37 @@ open EETypes
 /// - The student must not take the same module twice.
 /// - You must use StudentGen.randomStudentOptions, and pass it rng.
 let studentOptionsPartA (rng: System.Random) (person: Person) : ModuleOptions =
-    failwithf "Not Implemented"
+        (*
+        map over every moduleCode in list ModuleCodes
+            -> look for Module where ModuleCode=modulecode
+            -> check if person.ERegYear is in Module.OptionalFOr
+        check if length is 3
+        check for duplicates
+        *)  
+
+    let isValid person moduleCodes   =
+        let validModules =
+            moduleCodes
+            |> List.choose (fun code ->
+                moduleList
+                |> List.tryFind (fun m -> m.ModuleCode = code && List.contains person.ERegYr m.OptionalFor)
+            )
+        
+        validModules.Length = 3 && validModules |> List.distinctBy (fun m -> m.ModuleCode) |> List.length = StudentGen.Constants.numStudentOptions
+
+(*  Test cases
+    let person = { Name={|First="Amin" ; Last="Mohamed"|}  ; CID="02216105" ; ERegYr = "E3" ; CourseMarkSoFar=70.1 }
+    let moduleCodes1 = ["Elec60015"; "Elec60016"; "Elec60017"] // Valid case
+    let moduleCodes2 = ["Elec60015"; "Elec60016"; "Elec60018"] // Invalid: Module not valid for E3
+    let moduleCodes3 = ["Elec60015"; "Elec60015"; "Elec60016"] // Invalid: Duplicate module
+
+    isValid person moduleCodes3 
+*)
+
+    StudentGen.randomStudentOptions rng isValid person
+
+module Constants =
+    let numStudentOptions = 3
 
 // Part B - implement the function below
 
@@ -32,14 +62,62 @@ let randomStudentOptionsNotRecursive
         (rng: System.Random) 
         (isValid: Person -> ModuleCode list -> bool) 
         (person: Person): ModuleOptions
-    = failwithf "Not Implemented"
+    = 
+    let randomModuleCode() =
+       let listIndex = rng.Next(moduleList.Length - 1)
+       moduleList.[listIndex].ModuleCode
+    
+    let options (previous: ModuleCode list) = 
+        List.init Constants.numStudentOptions (fun _ -> randomModuleCode())
+    
+    let isInvalid moduleCodes =
+        not (isValid person moduleCodes)
+   
+    let finalOptions = doWhile isInvalid options (options [])
+
+    {CID = person.CID; Options = finalOptions}
+
+
+
+
 
 // Part C - implement the function below
 
 /// Generate data with random students and valid module options using functions from StudentGen and answer to Part A.
 /// Use seed for both the student and the module option
 let getValidEEdata (seed: int) (numStudents: int) : EEData =
-    failwithf "Not Implemented"
+    // real code
+    let isValid person moduleCodes   =
+        let validModules =
+            moduleCodes
+            |> List.choose (fun code ->
+                moduleList
+                |> List.tryFind (fun m -> m.ModuleCode = code && List.contains person.ERegYr m.OptionalFor)
+            )
+        validModules.Length = 3 && validModules |> List.distinctBy (fun m -> m.ModuleCode) |> List.length = Constants.numStudentOptions
+
+    let rng = System.Random(seed)
+    let randomStudent = StudentGen.getRandomStudentList seed 1 |> List.head
+    let randOptions = randomStudentOptionsNotRecursive rng isValid 
+
+    // fake code to test
+
+    let fakeRng = System.Random(52)
+    let student = StudentGen.getRandomStudentList 52 1 |> List.head
+    let options = randomStudentOptionsNotRecursive fakeRng isValid student
+    
+    // Construct EEData
+    let eeData = {
+        People = Map.ofList [(student.CID, student)]
+        Curriculum = Map.empty // Assuming no curriculum data provided
+        Options = Map.ofList [(options.CID, options)]
+    }
+
+    eeData
+
+
+
+
 
 // Part D - implement the function below
 
