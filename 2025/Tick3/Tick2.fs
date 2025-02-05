@@ -14,8 +14,10 @@ open EETypes
 //-------------------Add code to run and test your functions in Program.fs-------------------------------------------------//
 //-------------------Rigorous testing is not required for this Tick--------------------------------------------------------//
 
-// Helper Function
-let isValid (person:Person) (possibleModuleCodes:list<ModuleCode>) : bool=
+
+
+// Helper functions
+let isValidDU (person:PersonDU) (possibleModuleCodes:list<ModuleCodeDU>) : bool=
     possibleModuleCodes
     |> List.choose (fun code ->
         moduleList
@@ -25,6 +27,7 @@ let isValid (person:Person) (possibleModuleCodes:list<ModuleCode>) : bool=
     |> List.length
     |> (=) StudentGen.Constants.numStudentOptions
 
+
 // Part A - implement the function below
 
 /// Generate a list of random module codes for a student obeying the rules:
@@ -32,72 +35,86 @@ let isValid (person:Person) (possibleModuleCodes:list<ModuleCode>) : bool=
 /// - The student registration must be in the OptionalFor list of each taken module.
 /// - The student must not take the same module twice.
 /// - You must use StudentGen.randomStudentOptions, and pass it rng.
-let studentOptionsPartA (rng: System.Random) (person: Person) : ModuleOptions =
-    StudentGen.randomStudentOptions rng isValid person 
+let studentOptionsPartA (rng: System.Random) (person: PersonDU) : ModuleOptionsDU =
+    StudentGen.randomStudentOptions rng isValidDU person 
 
 
 // Part B - implement the function below
 
 /// Same functionality as EETypes.randomStudentOptions, but not recursive.
 /// Use LibExtensions.doWhile to implement this function.
+/// DU Version
 let randomStudentOptionsNotRecursive 
         (rng: System.Random) 
-        (isValid: Person -> ModuleCode list -> bool) 
-        (person: Person): ModuleOptions
+        (isValid: PersonDU -> ModuleCodeDU list -> bool) 
+        (person: PersonDU): ModuleOptionsDU
     = 
     let randomModuleCode() =
        let listIndex = rng.Next(moduleList.Length - 1)
        moduleList.[listIndex].ModuleCode
     
-    let options (previous: ModuleCode list) = 
-        List.init Constants.numStudentOptions (fun _ -> randomModuleCode())
+    let options (previous: ModuleCodeDU list) = 
+        List.init StudentGen.Constants.numStudentOptions (fun _ -> randomModuleCode())
     
-    let isInvalid moduleCodes =
-        not (isValid person moduleCodes)
+    let isInvalidDU moduleCodes =
+        not (isValidDU person moduleCodes)
    
-    let finalOptions = doWhile isInvalid options (options [])
+    let finalOptions = doWhile isInvalidDU options (options [])
 
     {CID = person.CID; Options = finalOptions}
-
-
-
 
 
 // Part C - implement the function below
 
 /// Generate data with random students and valid module options using functions from StudentGen and answer to Part A.
 /// Use seed for both the student and the module option
-let getValidEEdata (seed: int) (numStudents: int) : EEData =
+/// DU version
+let getValidEEdata (seed: int) (numStudents: int) : EEDataDU =
+    // real code
+    // let seed = 11
+    // let numStudents = 2
     let rng = System.Random(seed)
+    let randomStudents_ = StudentGen.getRandomStudentList seed numStudents
 
-    let randomStudents_ = StudentGen.getRandomStudentList seed numStudents 
-    let randOptions_ =
-        randomStudents_
-        |> List.map (randomStudentOptionsNotRecursive rng isValid)
+    let PersonToDU (person:Person) : PersonDU =
+        {
+            Name=person.Name;
+            CID= CIDdu person.CID;
+            ERegYr= (ERegYrToDU person.ERegYr);
+            CourseMarkSoFar= person.CourseMarkSoFar
+        }
+    
+    let randomStudents_DU = List.map PersonToDU randomStudents_
 
+    let randOptions_DU =
+        randomStudents_DU
+        |> List.map (randomStudentOptionsNotRecursive rng isValidDU)
+
+    let StudentsAndOptions = List.zip randomStudents_DU randOptions_DU
     
     //fold: input starting Map<CID,Person> and (CID*Person) new Map<CID,Person>
     let People = 
-        randomStudents_
+        randomStudents_DU
         |> List.map (fun student -> (student.CID, student))
         |> Map.ofList
     
 
     let getModuleWithModuleCode code = 
-        let theCode x = (x.ModuleCode = code)
+        let isCode x = (x.ModuleCode = code)
         moduleList
-        |> List.tryFind theCode  
+        |> List.tryFind isCode  
         |> Option.get
 
+
     let Curriculum =
-        randOptions_ 
+        randOptions_DU
         |> List.map (fun x -> x.Options)
         |> List.collect id 
         |> List.map (fun code -> (code, getModuleWithModuleCode code))
         |> Map.ofList 
 
     let Options =
-        randOptions_
+        randOptions_DU
         |> List.map (fun option -> (option.CID, option))
         |> Map.ofList
     
@@ -106,6 +123,9 @@ let getValidEEdata (seed: int) (numStudents: int) : EEData =
         Curriculum=Curriculum;
         Options=Options
     }
+
+
+
 
 
 
@@ -126,12 +146,18 @@ let groupStudents
         (groupSize: Map<ModuleCode,int>) 
         (data: EEData) : 
             Result<Map<ModuleCode,Map<Person,int>>,ModuleCode list> =
+            failwithf "Not implemented yet"
     (*
     Note that N items divided into G groups of size S or S+1 will have N / G = S (integer division).
     From this we can see that the number of groups of size S + 1 will be N % S, and the number of groups of size S will be N / S - N % S.
     In answering this question try to use indexes as little as possible, and use the functions from the List module.    
     *)
-    failwithf "Not Implemented"
+    
+    (*
+    Extract the students that do a module from EEData
+    
+    *)
+    
 
 // Part E - Optional. Implement each the functions and subfunctions below. You may not be able to implement all: do what you can.
 // Use additional helper functions are subfunctions at your discretion.
